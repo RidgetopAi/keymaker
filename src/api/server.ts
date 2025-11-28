@@ -132,14 +132,19 @@ app.post('/api/observe', async (req, res) => {
       message: 'Saved! Digesting in background...'
     });
 
-    // ASYNC DIGESTION: Process after response sent
+    // ASYNC DIGESTION + EXTRACTION: Process after response sent
     // This runs in the background, user doesn't wait
     setImmediate(async () => {
       try {
+        // Run digestion first (living summaries)
         const categories = await digestObservation(pool, id, normalizedContent, createdAt);
         console.log(`Background digest complete for ${id}: ${categories.join(', ') || 'none'}`);
-      } catch (digestErr) {
-        console.error(`Background digest failed for ${id}:`, digestErr);
+
+        // Then run entity extraction (people, projects, commitments with calendar sync)
+        const extractResult = await extractAndStoreEntities(pool, id, normalizedContent);
+        console.log(`Background extraction complete for ${id}: ${extractResult.people} people, ${extractResult.projects} projects, ${extractResult.commitments} commitments`);
+      } catch (err) {
+        console.error(`Background processing failed for ${id}:`, err);
       }
     });
 
