@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Keymaker</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      padding-bottom: 70px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    header {
+      text-align: center;
+      padding: 1rem 0 0.5rem;
+      position: sticky;
+      top: 0;
+      background: #1a1a2e;
+      z-index: 10;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      color: #4a9eff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    header h1::before {
+      content: "🔑";
+    }
+
+    .env-badge {
+      font-size: 0.65rem;
+      padding: 0.15rem 0.4rem;
+      background: #333;
+      border-radius: 4px;
+      margin-top: 0.25rem;
+      display: inline-block;
+      color: #888;
+    }
+
+    /* Bottom Navigation */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #16213e;
+      display: flex;
+      justify-content: space-around;
+      padding: 0.5rem 0 calc(0.5rem + env(safe-area-inset-bottom));
+      border-top: 1px solid #333;
+      z-index: 100;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.5rem 1rem;
+      color: #888;
+      text-decoration: none;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .nav-item.active {
+      color: #4a9eff;
+    }
+
+    .nav-item .icon {
+      font-size: 1.25rem;
+    }
+
+    /* Sections */
+    .section {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .section h2 {
+      font-size: 0.7rem;
+      color: #666;
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Identity Card */
+    .identity-card {
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 100%);
+      border-radius: 12px;
+      padding: 1.25rem;
+      border: 1px solid #333;
+      margin-bottom: 1rem;
+    }
+
+    .identity-title {
+      font-size: 0.75rem;
+      color: #4a9eff;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .identity-text {
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #ddd;
+    }
+
+    /* Category Pills */
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+    }
+
+    .category-pill {
+      background: #0f0f23;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .category-pill:hover, .category-pill:active {
+      background: #1a1a3e;
+      border-color: #4a9eff;
+    }
+
+    .category-pill .label {
+      font-size: 0.7rem;
+      color: #888;
+      text-transform: uppercase;
+      margin-bottom: 0.25rem;
+    }
+
+    .category-pill .preview {
+      font-size: 0.8rem;
+      color: #ccc;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Quick Capture */
+    .capture-input {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 16px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #0f0f23;
+      color: #eee;
+      resize: none;
+      font-family: inherit;
+      min-height: 60px;
+    }
+
+    .capture-input:focus {
+      outline: none;
+      border-color: #4a9eff;
+    }
+
+    .capture-btn {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      background: #4a9eff;
+      color: #fff;
+      transition: background 0.2s;
+    }
+
+    .capture-btn:hover {
+      background: #3a8eef;
+    }
+
+    .capture-btn:disabled {
+      background: #333;
+      cursor: not-allowed;
+    }
+
+    /* Recent List */
+    .recent-item {
+      padding: 0.5rem;
+      background: #0f0f23;
+      border-radius: 6px;
+      margin-bottom: 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    .recent-date {
+      font-size: 0.65rem;
+      color: #666;
+      margin-bottom: 0.15rem;
+    }
+
+    /* Insights */
+    .insight-text {
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #ccc;
+      white-space: pre-wrap;
+    }
+
+    /* Entity Lists */
+    .entity-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .entity-card {
+      background: #0f0f23;
+      border-radius: 8px;
+      padding: 0.75rem;
+      border: 1px solid #333;
+    }
+
+    .entity-card.contradiction {
+      border-color: #ff6b6b;
+      background: rgba(255, 107, 107, 0.1);
+    }
+
+    .entity-name {
+      font-weight: 600;
+      color: #4a9eff;
+      font-size: 0.9rem;
+    }
+
+    .entity-meta {
+      font-size: 0.7rem;
+      color: #666;
+      margin-top: 0.25rem;
+    }
+
+    .entity-desc {
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-top: 0.25rem;
+    }
+
+    .entity-status {
+      display: inline-block;
+      font-size: 0.65rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      margin-left: 0.5rem;
+    }
+
+    .entity-status.open { background: #ff9f43; color: #000; }
+    .entity-status.completed { background: #26de81; color: #000; }
+    .entity-status.active { background: #4a9eff; color: #fff; }
+
+    .belief-statement {
+      font-style: italic;
+      color: #ccc;
+    }
+
+    .contradiction-pair {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .contradiction-vs {
+      text-align: center;
+      font-size: 0.7rem;
+      color: #ff6b6b;
+      font-weight: 600;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 200;
+      align-items: flex-end;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #16213e;
+      width: 100%;
+      max-height: 80vh;
+      border-radius: 16px 16px 0 0;
+      padding: 1.5rem;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      color: #4a9eff;
+      text-transform: capitalize;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: #ddd;
+      white-space: pre-wrap;
+    }
+
+    /* Timeline View */
+    .month-strip {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding: 0.5rem 0;
+      margin-bottom: 1rem;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .month-chip {
+      flex-shrink: 0;
+      padding: 0.5rem 1rem;
+      background: #0f0f23;
+      border: 1px solid #333;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      color: #ccc;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .month-chip.active {
+      background: #4a9eff;
+      border-color: #4a9eff;
+      color: #fff;
+    }
+
+    .month-chip.empty {
+      opacity: 0.5;
+    }
+
+    .month-chip.live {
+      border-color: #4CAF50;
+      background: rgba(76,175,80,0.15);
+    }
+
+    .month-chip.live.active {
+      background: #4CAF50;
+      border-color: #4CAF50;
+    }
+
+    .snapshot-view {
+      background: #0f0f23;
+      border-radius: 12px;
+      padding: 1rem;
+    }
+
+    .snapshot-category {
+      margin-bottom: 1rem;
+    }
+
+    .snapshot-category h3 {
+      font-size: 0.75rem;
+      color: #4a9eff;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+    }
+
+    .snapshot-category p {
+      font-size: 0.85rem;
+      color: #ccc;
+      line-height: 1.5;
+    }
+
+    /* Search View */
+    .search-input {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 16px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      background: #0f0f23;
+      color: #eee;
+      font-family: inherit;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: #4a9eff;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-chip {
+      padding: 0.4rem 0.75rem;
+      background: #0f0f23;
+      border: 1px solid #333;
+      border-radius: 16px;
+      font-size: 0.7rem;
+      color: #ccc;
+      cursor: pointer;
+    }
+
+    .filter-chip.active {
+      background: #4a9eff33;
+      border-color: #4a9eff;
+      color: #4a9eff;
+    }
+
+    .search-results {
+      margin-top: 1rem;
+    }
+
+    .result-item {
+      background: #0f0f23;
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .result-date {
+      font-size: 0.65rem;
+      color: #4a9eff;
+      margin-bottom: 0.25rem;
+    }
+
+    .result-content {
+      font-size: 0.85rem;
+      color: #ccc;
+      line-height: 1.4;
+    }
+
+    .result-similarity {
+      font-size: 0.6rem;
+      color: #666;
+      margin-top: 0.25rem;
+    }
+
+    /* View containers */
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    /* Loading & Status */
+    .loading {
+      text-align: center;
+      padding: 1rem;
+      color: #666;
+      font-size: 0.85rem;
+    }
+
+    .error {
+      color: #ff6b6b;
+      font-size: 0.8rem;
+      padding: 0.5rem;
+    }
+
+    .success {
+      color: #51cf66;
+      font-size: 0.8rem;
+      padding: 0.5rem;
+    }
+
+    /* Digest Card */
+    .digest-card {
+      background: linear-gradient(135deg, #0f0f23 0%, #1a2a3e 100%);
+      border-radius: 12px;
+      padding: 1rem;
+      border: 1px solid #333;
+    }
+
+    .digest-title {
+      font-size: 0.7rem;
+      color: #51cf66;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+    }
+
+    .digest-text {
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: #ccc;
+    }
+
+    /* Hide scrollbar but allow scrolling */
+    .month-strip::-webkit-scrollbar {
+      display: none;
+    }
+    .month-strip {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Chat View */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 140px);
+      background: #16213e;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .chat-welcome {
+      text-align: center;
+      color: #666;
+      padding: 2rem 1rem;
+    }
+
+    .chat-message {
+      max-width: 85%;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .chat-message.user {
+      align-self: flex-end;
+      background: #4a9eff;
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-message.assistant {
+      align-self: flex-start;
+      background: #0f0f23;
+      color: #eee;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-message .intent-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+      opacity: 0.7;
+    }
+
+    .chat-message .intent-badge.query { background: #6c5ce7; }
+    .chat-message .intent-badge.observation { background: #00b894; }
+    .chat-message .intent-badge.update { background: #fdcb6e; color: #333; }
+    .chat-message .intent-badge.clarification { background: #e17055; }
+
+    .chat-input-area {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem;
+      background: #0f0f23;
+      border-top: 1px solid #333;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      font-size: 16px;
+      border: 1px solid #333;
+      border-radius: 12px;
+      background: #16213e;
+      color: #eee;
+      font-family: inherit;
+      resize: none;
+      min-height: 44px;
+      max-height: 120px;
+    }
+
+    .chat-input:focus {
+      outline: none;
+      border-color: #4a9eff;
+    }
+
+    .chat-send-btn {
+      padding: 0.75rem 1.25rem;
+      background: #4a9eff;
+      color: #fff;
+      border: none;
+      border-radius: 24px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .chat-send-btn:hover {
+      background: #3d8bdb;
+    }
+
+    .chat-send-btn:disabled {
+      background: #333;
+      cursor: not-allowed;
+    }
+
+    .chat-typing {
+      align-self: flex-start;
+      color: #666;
+      font-style: italic;
+      font-size: 0.85rem;
+    }
+
+    /* Voice Input Button */
+    .chat-voice-btn {
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      background: #333;
+      color: #eee;
+      border: none;
+      border-radius: 50%;
+      font-size: 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .chat-voice-btn:hover {
+      background: #444;
+    }
+
+    .chat-voice-btn.recording {
+      background: #e74c3c;
+      animation: pulse 1s infinite;
+    }
+
+    .chat-voice-btn.transcribing {
+      background: #f39c12;
+      cursor: wait;
+    }
+
+    .chat-voice-btn:disabled {
+      background: #222;
+      cursor: not-allowed;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .voice-status {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      white-space: nowrap;
+      margin-bottom: 4px;
+    }
+
+    .chat-input-wrapper {
+      flex: 1;
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-end;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Keymaker</h1>
+    <div class="env-badge" id="envBadge">connecting...</div>
+  </header>
+
+  <div class="container">
+    <!-- NOW VIEW (Default) -->
+    <div id="now-view" class="view active">
+      <!-- Identity Card -->
+      <div class="identity-card">
+        <div class="identity-title">Right Now</div>
+        <div class="identity-text" id="identityText">
+          <span class="loading">Loading your identity...</span>
+        </div>
+      </div>
+
+      <!-- Category Pills -->
+      <div class="section">
+        <h2>What Matters</h2>
+        <div class="category-grid" id="categoryGrid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Weekly Digest -->
+      <div class="section" id="digestSection">
+        <h2>Weekly Digest</h2>
+        <div class="digest-card">
+          <div class="digest-text" id="digestText">
+            <span class="loading">Loading digest...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- What Needs Attention -->
+      <div class="section">
+        <h2>Needs Attention</h2>
+        <div class="insight-text" id="insightsText">
+          <span class="loading">Scanning memory...</span>
+        </div>
+      </div>
+
+      <!-- Quick Capture -->
+      <div class="section">
+        <h2>Capture</h2>
+        <textarea class="capture-input" id="captureInput" placeholder="What's on your mind?"></textarea>
+        <button class="capture-btn" id="captureBtn" onclick="observe()">Save</button>
+        <div id="captureResult"></div>
+      </div>
+
+      <!-- Recent -->
+      <div class="section">
+        <h2>Recent</h2>
+        <div id="recentList">
+          <span class="loading">Loading...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMELINE VIEW -->
+    <div id="timeline-view" class="view">
+      <div class="section">
+        <h2>Your Timeline</h2>
+        <div class="month-strip" id="monthStrip">
+          <!-- Populated by JS -->
+        </div>
+        <div class="snapshot-view" id="snapshotView">
+          <span class="loading">Select a month to view...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEARCH VIEW -->
+    <div id="search-view" class="view">
+      <div class="section">
+        <h2>Search Your Memory</h2>
+        <input type="text" class="search-input" id="searchInput" placeholder="Search observations...">
+        <div class="filter-row">
+          <span class="filter-chip active" data-range="all">All Time</span>
+          <span class="filter-chip" data-range="week">Last Week</span>
+          <span class="filter-chip" data-range="month">Last Month</span>
+          <span class="filter-chip" data-range="first">First Mention</span>
+        </div>
+        <div class="search-results" id="searchResults"></div>
+      </div>
+
+      <!-- Query Mode -->
+      <div class="section">
+        <h2>Ask a Question</h2>
+        <input type="text" class="search-input" id="queryInput" placeholder="Who is Sarah? What did I decide about...?">
+        <button class="capture-btn" onclick="query()" style="margin-top: 0.5rem;">Ask</button>
+        <div class="insight-text" id="queryResult" style="margin-top: 0.75rem;"></div>
+      </div>
+    </div>
+
+    <!-- ENTITIES VIEW -->
+    <div id="entities-view" class="view">
+      <div class="section">
+        <h2>People</h2>
+        <div id="peopleList" class="entity-list">
+          <span class="loading">Loading...</span>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Projects</h2>
+        <div id="projectsList" class="entity-list">
+          <span class="loading">Loading...</span>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Commitments</h2>
+        <div id="commitmentsList" class="entity-list">
+          <span class="loading">Loading...</span>
+        </div>
+      </div>
+      
+      <div class="section">
+        <h2>Beliefs</h2>
+        <div id="beliefsList" class="entity-list">
+          <span class="loading">Loading...</span>
+        </div>
+      </div>
+      
+      <div class="section" id="contradictionsSection">
+        <h2>⚠️ Contradictions</h2>
+        <div id="contradictionsList" class="entity-list">
+          <span class="loading">Loading...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT VIEW -->
+    <div id="chat-view" class="view">
+      <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-welcome">
+            <p>Talk to your memory. Ask questions, record thoughts, mark tasks complete.</p>
+            <p style="font-size: 0.8rem; opacity: 0.7;">Examples: "What do I have left to do?" or "Finished the gas bill"</p>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <button id="chatVoice" class="chat-voice-btn" title="Voice input">🎤</button>
+          <textarea id="chatInput" class="chat-input" placeholder="Type or tap mic..." rows="2"></textarea>
+          <button id="chatSend" class="chat-send-btn">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <div class="nav-item active" data-view="now">
+      <span class="icon">🏠</span>
+      <span>Now</span>
+    </div>
+    <div class="nav-item" data-view="chat">
+      <span class="icon">💬</span>
+      <span>Chat</span>
+    </div>
+    <div class="nav-item" data-view="timeline">
+      <span class="icon">📅</span>
+      <span>Timeline</span>
+    </div>
+    <div class="nav-item" data-view="entities">
+      <span class="icon">👥</span>
+      <span>Entities</span>
+    </div>
+    <div class="nav-item" data-view="search">
+      <span class="icon">🔍</span>
+      <span>Search</span>
+    </div>
+  </nav>
+
+  <!-- Category Detail Modal -->
+  <div class="modal-overlay" id="categoryModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-title" id="modalTitle">Category</span>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '';
+    const TOKEN = localStorage.getItem('keymaker_token') || '';
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(TOKEN && { 'x-keymaker-token': TOKEN })
+    };
+
+    let summaries = {};
+    let currentSearchRange = 'all';
+
+    // =======================================================================
+    // NAVIGATION
+    // =======================================================================
+    
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const view = item.dataset.view;
+        
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        item.classList.add('active');
+        
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(`${view}-view`).classList.add('active');
+        
+        // Load view-specific data
+        if (view === 'timeline') loadTimeline();
+        if (view === 'entities') loadEntities();
+      });
+    });
+
+    // =======================================================================
+    // NOW VIEW
+    // =======================================================================
+
+    async function loadIdentity() {
+      try {
+        const res = await fetch(`${API_BASE}/api/identity`, { headers });
+        const data = await res.json();
+        
+        if (res.ok) {
+          document.getElementById('identityText').textContent = data.identity;
+          summaries = data.summaries;
+          renderCategories();
+        } else {
+          document.getElementById('identityText').innerHTML = '<span class="error">Could not load identity</span>';
+        }
+      } catch (err) {
+        document.getElementById('identityText').innerHTML = '<span class="error">Connection error</span>';
+      }
+    }
+
+    function renderCategories() {
+      const grid = document.getElementById('categoryGrid');
+      const categories = [
+        { key: 'commitments', icon: '📋', label: 'Commitments' },
+        { key: 'people', icon: '👥', label: 'People' },
+        { key: 'projects', icon: '🎯', label: 'Projects' },
+        { key: 'tensions', icon: '⚡', label: 'Tensions' },
+        { key: 'mood', icon: '💭', label: 'Mood' },
+        { key: 'narrative', icon: '📖', label: 'Narrative' }
+      ];
+
+      grid.innerHTML = categories.map(cat => {
+        const content = summaries[cat.key] || 'No data yet';
+        const preview = content.substring(0, 40) + (content.length > 40 ? '...' : '');
+        return `
+          <div class="category-pill" onclick="showCategory('${cat.key}', '${cat.label}')">
+            <div class="label">${cat.icon} ${cat.label}</div>
+            <div class="preview">${preview}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function showCategory(key, label) {
+      document.getElementById('modalTitle').textContent = label;
+      document.getElementById('modalBody').textContent = summaries[key] || 'No data yet.';
+      document.getElementById('categoryModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('categoryModal').classList.remove('active');
+    }
+
+    async function loadInsights() {
+      try {
+        const res = await fetch(`${API_BASE}/api/surface`, { headers });
+        const data = await res.json();
+        
+        if (res.ok) {
+          document.getElementById('insightsText').textContent = data.insights;
+        } else {
+          document.getElementById('insightsText').innerHTML = '<span class="error">Could not load insights</span>';
+        }
+      } catch (err) {
+        document.getElementById('insightsText').innerHTML = '<span class="error">Connection error</span>';
+      }
+    }
+
+    async function loadDigest() {
+      try {
+        const res = await fetch(`${API_BASE}/api/digest`, { headers });
+        const data = await res.json();
+        
+        if (res.ok && data.digest) {
+          document.getElementById('digestText').textContent = data.digest;
+        } else {
+          document.getElementById('digestSection').style.display = 'none';
+        }
+      } catch (err) {
+        document.getElementById('digestSection').style.display = 'none';
+      }
+    }
+
+    async function loadRecent() {
+      try {
+        const res = await fetch(`${API_BASE}/api/list?limit=3`, { headers });
+        const data = await res.json();
+        
+        if (data.observations.length === 0) {
+          document.getElementById('recentList').innerHTML = '<div class="recent-item">No observations yet.</div>';
+          return;
+        }
+
+        document.getElementById('recentList').innerHTML = data.observations.map(obs => `
+          <div class="recent-item">
+            <div class="recent-date">${formatDate(obs.created_at)}</div>
+            ${obs.content.substring(0, 100)}${obs.content.length > 100 ? '...' : ''}
+          </div>
+        `).join('');
+      } catch (err) {
+        document.getElementById('recentList').innerHTML = '<span class="error">Failed to load</span>';
+      }
+    }
+
+    async function observe() {
+      const input = document.getElementById('captureInput');
+      const btn = document.getElementById('captureBtn');
+      const result = document.getElementById('captureResult');
+      const content = input.value.trim();
+
+      if (!content) {
+        result.innerHTML = '<span class="error">Please enter something.</span>';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/observe`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ content })
+        });
+
+        const data = await res.json();
+        
+        if (res.ok && data.success) {
+          if (data.deduplicated) {
+            // Already saved recently - not an error, just skip
+            result.innerHTML = '<span class="success">✓ Already saved</span>';
+          } else {
+            // New observation saved, digesting in background
+            result.innerHTML = '<span class="success">✓ Saved</span>';
+            input.value = '';
+            loadRecent();
+          }
+          setTimeout(() => { result.innerHTML = ''; }, 2000);
+        } else {
+          result.innerHTML = `<span class="error">${data.error || 'Save failed'}</span>`;
+        }
+      } catch (err) {
+        console.error('Observe error:', err);
+        result.innerHTML = '<span class="error">Connection error - try again</span>';
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Save';
+    }
+
+    // =======================================================================
+    // TIMELINE VIEW
+    // =======================================================================
+
+    // Track current month for live data detection
+    const NOW = new Date();
+    const CURRENT_PERIOD = `${NOW.getFullYear()}-${String(NOW.getMonth() + 1).padStart(2, '0')}`;
+
+    async function loadTimeline() {
+      const strip = document.getElementById('monthStrip');
+      strip.innerHTML = '<span class="loading">Loading timeline...</span>';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/timeline/snapshots`, { headers });
+        const data = await res.json();
+
+        // Generate last 12 months
+        const months = [];
+        const now = new Date();
+        for (let i = 0; i < 12; i++) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const period = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          const isCurrentMonth = (i === 0); // First entry is current month
+          const hasSnapshot = data.snapshots?.some(s => s.period === period);
+          months.push({
+            period,
+            label: d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+            hasSnapshot,
+            isLive: isCurrentMonth // Current month always has live data
+          });
+        }
+
+        strip.innerHTML = months.map((m, i) => `
+          <div class="month-chip ${m.isLive ? 'live' : (!m.hasSnapshot ? 'empty' : '')}"
+               data-period="${m.period}"
+               onclick="selectMonth('${m.period}', ${m.isLive})">
+            ${m.label}${m.isLive ? ' <span style="font-size:0.6rem;opacity:0.7;">LIVE</span>' : ''}
+          </div>
+        `).join('');
+
+        // Load current month (live) by default
+        selectMonth(months[0].period, true);
+
+      } catch (err) {
+        strip.innerHTML = '<span class="error">Failed to load timeline</span>';
+      }
+    }
+
+    async function selectMonth(period, isLive = false) {
+      // Update UI
+      document.querySelectorAll('.month-chip').forEach(c => c.classList.remove('active'));
+      document.querySelector(`.month-chip[data-period="${period}"]`)?.classList.add('active');
+
+      const view = document.getElementById('snapshotView');
+      view.innerHTML = `<span class="loading">Loading ${isLive ? 'live data' : 'snapshot'}...</span>`;
+
+      try {
+        const categories = ['narrative', 'mood', 'commitments', 'people', 'projects', 'tensions'];
+
+        if (isLive) {
+          // Fetch live data from current summaries
+          const res = await fetch(`${API_BASE}/api/summaries`, { headers });
+          if (!res.ok) {
+            view.innerHTML = '<p style="color: #888;">No data yet. Start capturing observations!</p>';
+            return;
+          }
+          const data = await res.json();
+          const summaries = data.summaries || data; // API returns {summaries: {...}}
+
+          view.innerHTML = `
+            <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: rgba(76,175,80,0.1); border-radius: 8px; border-left: 3px solid #4CAF50;">
+              <small style="color: #4CAF50;">📍 Live - Current state of your memory</small>
+            </div>
+          ` + categories.map(cat => {
+            const content = summaries[cat] || 'No data';
+            return `
+              <div class="snapshot-category">
+                <h3>${cat}</h3>
+                <p>${content.substring(0, 300)}${content.length > 300 ? '...' : ''}</p>
+              </div>
+            `;
+          }).join('');
+
+        } else {
+          // Fetch historical snapshot
+          const res = await fetch(`${API_BASE}/api/timeline/${period}`, { headers });
+
+          if (!res.ok) {
+            view.innerHTML = '<p style="color: #888;">No snapshot for this month.</p>';
+            return;
+          }
+
+          const data = await res.json();
+
+          view.innerHTML = `
+            <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: rgba(158,158,158,0.1); border-radius: 8px; border-left: 3px solid #9E9E9E;">
+              <small style="color: #9E9E9E;">📸 Snapshot - How things were in ${period}</small>
+            </div>
+          ` + categories.map(cat => {
+            const content = data.snapshot?.[cat]?.content || 'No data';
+            return `
+              <div class="snapshot-category">
+                <h3>${cat}</h3>
+                <p>${content.substring(0, 300)}${content.length > 300 ? '...' : ''}</p>
+              </div>
+            `;
+          }).join('');
+        }
+
+      } catch (err) {
+        view.innerHTML = '<span class="error">Failed to load data</span>';
+      }
+    }
+
+    // =======================================================================
+    // SEARCH VIEW
+    // =======================================================================
+
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        currentSearchRange = chip.dataset.range;
+      });
+    });
+
+    document.getElementById('searchInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') runSearch();
+    });
+
+    async function runSearch() {
+      const query = document.getElementById('searchInput').value.trim();
+      const results = document.getElementById('searchResults');
+
+      if (!query) return;
+
+      results.innerHTML = '<span class="loading">Searching...</span>';
+
+      // Build search params
+      let from, to;
+      const now = new Date();
+      
+      if (currentSearchRange === 'week') {
+        from = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 7);
+      } else if (currentSearchRange === 'month') {
+        from = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 7);
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/search`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            query,
+            from,
+            to,
+            firstMentionOnly: currentSearchRange === 'first',
+            limit: 15
+          })
+        });
+
+        const data = await res.json();
+
+        if (data.results?.length === 0) {
+          results.innerHTML = '<p style="color: #888;">No results found.</p>';
+          return;
+        }
+
+        results.innerHTML = data.results.map(r => `
+          <div class="result-item">
+            <div class="result-date">${formatDate(r.date)}</div>
+            <div class="result-content">${r.content}</div>
+            <div class="result-similarity">${Math.round(r.similarity * 100)}% match</div>
+          </div>
+        `).join('');
+
+      } catch (err) {
+        results.innerHTML = '<span class="error">Search failed</span>';
+      }
+    }
+
+    async function query() {
+      const input = document.getElementById('queryInput');
+      const result = document.getElementById('queryResult');
+      const question = input.value.trim();
+
+      if (!question) {
+        result.textContent = 'Please enter a question.';
+        return;
+      }
+
+      result.innerHTML = '<span class="loading">Thinking...</span>';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/query`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ question })
+        });
+
+        const data = await res.json();
+        result.textContent = res.ok ? data.answer : `Error: ${data.error}`;
+      } catch (err) {
+        result.textContent = 'Failed to query.';
+      }
+    }
+
+    // =======================================================================
+    // ENTITIES VIEW
+    // =======================================================================
+
+    async function loadEntities() {
+      try {
+        const [people, projects, commitments, beliefs, contradictions] = await Promise.all([
+          fetch(`${API_BASE}/api/entities/people`, { headers }).then(r => r.json()),
+          fetch(`${API_BASE}/api/entities/projects`, { headers }).then(r => r.json()),
+          fetch(`${API_BASE}/api/entities/commitments`, { headers }).then(r => r.json()),
+          fetch(`${API_BASE}/api/entities/beliefs`, { headers }).then(r => r.json()),
+          fetch(`${API_BASE}/api/entities/contradictions`, { headers }).then(r => r.json())
+        ]);
+
+        renderPeople(people.people || []);
+        renderProjects(projects.projects || []);
+        renderCommitments(commitments.commitments || []);
+        renderBeliefs(beliefs.beliefs || []);
+        renderContradictions(contradictions.contradictions || []);
+      } catch (err) {
+        console.error('Failed to load entities:', err);
+      }
+    }
+
+    function renderPeople(people) {
+      const container = document.getElementById('peopleList');
+      if (!people.length) {
+        container.innerHTML = '<div class="entity-card"><span class="entity-desc">No people tracked yet</span></div>';
+        return;
+      }
+      container.innerHTML = people.map(p => `
+        <div class="entity-card">
+          <span class="entity-name">${p.canonical_name}</span>
+          ${p.relationship_type ? `<span class="entity-status active">${p.relationship_type}</span>` : ''}
+          <div class="entity-meta">Last seen: ${formatDate(p.last_seen)}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderProjects(projects) {
+      const container = document.getElementById('projectsList');
+      if (!projects.length) {
+        container.innerHTML = '<div class="entity-card"><span class="entity-desc">No projects tracked yet</span></div>';
+        return;
+      }
+      container.innerHTML = projects.map(p => `
+        <div class="entity-card">
+          <span class="entity-name">${p.name}</span>
+          <span class="entity-status ${p.status}">${p.status}</span>
+          ${p.description ? `<div class="entity-desc">${p.description}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    function renderCommitments(commitments) {
+      const container = document.getElementById('commitmentsList');
+      if (!commitments.length) {
+        container.innerHTML = '<div class="entity-card"><span class="entity-desc">No commitments tracked yet</span></div>';
+        return;
+      }
+      container.innerHTML = commitments.map(c => `
+        <div class="entity-card">
+          <span class="entity-desc">${c.description}</span>
+          <span class="entity-status ${c.status}">${c.status}</span>
+          ${c.due_date ? `<div class="entity-meta">Due: ${formatDate(c.due_date)}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    function renderBeliefs(beliefs) {
+      const container = document.getElementById('beliefsList');
+      if (!beliefs.length) {
+        container.innerHTML = '<div class="entity-card"><span class="entity-desc">No beliefs tracked yet</span></div>';
+        return;
+      }
+      container.innerHTML = beliefs.map(b => `
+        <div class="entity-card">
+          <span class="belief-statement">"${b.statement}"</span>
+          <div class="entity-meta">${b.belief_type || 'belief'} • confidence: ${Math.round((b.confidence || 0.5) * 100)}%</div>
+        </div>
+      `).join('');
+    }
+
+    function renderContradictions(contradictions) {
+      const container = document.getElementById('contradictionsList');
+      const section = document.getElementById('contradictionsSection');
+      
+      if (!contradictions.length) {
+        section.style.display = 'none';
+        return;
+      }
+      
+      section.style.display = 'block';
+      container.innerHTML = contradictions.map(c => `
+        <div class="entity-card contradiction">
+          <div class="contradiction-pair">
+            <span class="belief-statement">"${c.belief_a}"</span>
+            <span class="contradiction-vs">⚠️ contradicts ⚠️</span>
+            <span class="belief-statement">"${c.belief_b}"</span>
+          </div>
+          <div class="entity-meta">${c.severity} • ${c.explanation || 'semantic opposition'}</div>
+        </div>
+      `).join('');
+    }
+
+    // =======================================================================
+    // UTILITIES
+    // =======================================================================
+
+    function formatDate(dateStr) {
+      const d = new Date(dateStr);
+      const now = new Date();
+      const diff = now - d;
+      
+      if (diff < 60000) return 'Just now';
+      if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+      if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+      if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
+      
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    async function checkHealth() {
+      try {
+        const res = await fetch(`${API_BASE}/api/health`);
+        const data = await res.json();
+        document.getElementById('envBadge').textContent = `${data.environment} • ${data.database}`;
+      } catch (err) {
+        document.getElementById('envBadge').textContent = 'disconnected';
+      }
+    }
+
+    // Close modal on overlay click
+    document.getElementById('categoryModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('categoryModal')) closeModal();
+    });
+
+    // Capture with Cmd+Enter
+    document.getElementById('captureInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.metaKey) observe();
+    });
+
+    // =======================================================================
+    // CHAT VIEW
+    // =======================================================================
+
+    let chatSessionId = null;
+
+    async function initChat() {
+      try {
+        // Get or create session (stored in localStorage for persistence)
+        const storedSessionId = localStorage.getItem('keymaker_chat_session');
+        const res = await fetch(`${API_BASE}/api/chat/session`, {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: storedSessionId })
+        });
+        const data = await res.json();
+        chatSessionId = data.sessionId;
+        localStorage.setItem('keymaker_chat_session', chatSessionId);
+
+        // Render existing messages
+        const container = document.getElementById('chatMessages');
+        if (data.messages && data.messages.length > 0) {
+          container.innerHTML = '';
+          data.messages.forEach(msg => renderChatMessage(msg.role, msg.content, msg.intent));
+        }
+      } catch (err) {
+        console.error('Chat init error:', err);
+      }
+    }
+
+    function renderChatMessage(role, content, intent) {
+      const container = document.getElementById('chatMessages');
+      const welcome = container.querySelector('.chat-welcome');
+      if (welcome) welcome.remove();
+
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `chat-message ${role}`;
+
+      let html = content.replace(/\n/g, '<br>');
+      if (role === 'assistant' && intent) {
+        html += `<br><span class="intent-badge ${intent}">${intent}</span>`;
+      }
+      msgDiv.innerHTML = html;
+
+      container.appendChild(msgDiv);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const sendBtn = document.getElementById('chatSend');
+      const message = input.value.trim();
+
+      if (!message || !chatSessionId) return;
+
+      // Disable input while processing
+      input.disabled = true;
+      sendBtn.disabled = true;
+
+      // Render user message immediately
+      renderChatMessage('user', message);
+      input.value = '';
+
+      // Show typing indicator
+      const container = document.getElementById('chatMessages');
+      const typing = document.createElement('div');
+      typing.className = 'chat-typing';
+      typing.textContent = 'Thinking...';
+      container.appendChild(typing);
+      container.scrollTop = container.scrollHeight;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/chat/message`, {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: chatSessionId, message })
+        });
+
+        typing.remove();
+
+        if (!res.ok) {
+          throw new Error('Chat request failed');
+        }
+
+        const data = await res.json();
+        renderChatMessage('assistant', data.response, data.intent);
+
+        // If action was taken that updates data, refresh the Now view
+        if (data.actionTaken?.type === 'observation' || data.actionTaken?.type === 'update') {
+          loadInsights();
+          loadRecent();
+        }
+      } catch (err) {
+        typing.remove();
+        renderChatMessage('assistant', 'Sorry, something went wrong. Please try again.');
+        console.error('Chat error:', err);
+      } finally {
+        input.disabled = false;
+        sendBtn.disabled = false;
+        input.focus();
+      }
+    }
+
+    // Chat event listeners - Send button only (Enter adds new line in textarea)
+    document.getElementById('chatSend').addEventListener('click', sendChatMessage);
+
+    // =======================================================================
+    // VOICE INPUT (Instance #50)
+    // =======================================================================
+
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+
+    const voiceBtn = document.getElementById('chatVoice');
+
+    // Check if browser supports audio recording
+    const hasMediaRecorder = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+
+    if (!hasMediaRecorder) {
+      voiceBtn.disabled = true;
+      voiceBtn.title = 'Voice input not supported in this browser';
+    }
+
+    voiceBtn.addEventListener('click', async () => {
+      if (!hasMediaRecorder) return;
+
+      if (isRecording) {
+        // Stop recording
+        stopRecording();
+      } else {
+        // Start recording
+        await startRecording();
+      }
+    });
+
+    async function startRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        // Use webm if available, fall back to other formats
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : MediaRecorder.isTypeSupported('audio/mp4')
+            ? 'audio/mp4'
+            : 'audio/ogg';
+
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            audioChunks.push(e.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          // Stop the stream tracks
+          stream.getTracks().forEach(track => track.stop());
+
+          // Combine chunks into blob
+          const audioBlob = new Blob(audioChunks, { type: mimeType });
+
+          // Transcribe
+          await transcribeAudio(audioBlob, mimeType);
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        voiceBtn.classList.add('recording');
+        voiceBtn.innerHTML = '⏹';
+        voiceBtn.title = 'Stop recording';
+      } catch (err) {
+        console.error('Failed to start recording:', err);
+        alert('Could not access microphone. Please check permissions.');
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        voiceBtn.classList.remove('recording');
+        voiceBtn.classList.add('transcribing');
+        voiceBtn.innerHTML = '⏳';
+        voiceBtn.title = 'Transcribing...';
+      }
+    }
+
+    async function transcribeAudio(audioBlob, mimeType) {
+      const input = document.getElementById('chatInput');
+
+      try {
+        // Convert blob to array buffer
+        const arrayBuffer = await audioBlob.arrayBuffer();
+
+        const res = await fetch(`${API_BASE}/api/transcribe`, {
+          method: 'POST',
+          headers: {
+            ...headers,
+            'Content-Type': mimeType
+          },
+          body: arrayBuffer
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Transcription failed');
+        }
+
+        const data = await res.json();
+
+        if (data.text && data.text.trim()) {
+          // Append transcribed text to input (in case there's already text)
+          const existing = input.value.trim();
+          input.value = existing ? `${existing} ${data.text}` : data.text;
+          input.focus();
+        }
+      } catch (err) {
+        console.error('Transcription error:', err);
+        alert('Transcription failed: ' + err.message);
+      } finally {
+        // Reset button state
+        voiceBtn.classList.remove('transcribing');
+        voiceBtn.innerHTML = '🎤';
+        voiceBtn.title = 'Voice input';
+      }
+    }
+
+    // =======================================================================
+    // INIT
+    // =======================================================================
+
+    checkHealth();
+    loadIdentity();
+    loadInsights();
+    loadDigest();
+    loadRecent();
+    initChat();
+  </script>
+</body>
+</html>

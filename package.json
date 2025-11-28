@@ -1,0 +1,38 @@
+{
+  "name": "keymaker",
+  "version": "0.1.0",
+  "description": "Personal Memory System - crafts the right context for any situation",
+  "type": "module",
+  "scripts": {
+    "keymaker": "tsx src/cli.ts",
+    "serve": "tsx src/api/server.ts",
+    "serve:prod": "KEYMAKER_ENV=production tsx src/api/server.ts",
+    "validate": "tsx scripts/validate-extraction.ts",
+    "type-check": "tsc --noEmit",
+    "db:create": "createdb -h localhost -p 5432 keymaker_dev",
+    "db:create:prod": "createdb -h localhost -p 5432 keymaker_production",
+    "db:setup": "psql -h localhost -p 5432 keymaker_dev < schema/mvk.sql",
+    "db:setup:prod": "psql -h localhost -p 5432 keymaker_production < schema/mvk.sql",
+    "db:setup-full": "psql -h localhost -p 5432 keymaker_dev < schema/entity_registry.sql && psql -h localhost -p 5432 keymaker_dev < schema/contradiction_tracking.sql && psql -h localhost -p 5432 keymaker_dev < schema/keymaker_main.sql && psql -h localhost -p 5432 keymaker_dev < schema/migrations/001_embedding_768.sql"
+  },
+  "bin": {
+    "keymaker": "./src/cli.ts"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.18.2",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.0",
+    "@types/pg": "^8.10.9",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

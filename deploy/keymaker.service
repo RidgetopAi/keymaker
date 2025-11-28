@@ -1,0 +1,20 @@
+[Unit]
+Description=Keymaker Personal Memory API
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=ridgetop
+WorkingDirectory=/home/ridgetop/keymaker
+Environment=NODE_ENV=production
+Environment=KEYMAKER_ENV=production
+Environment=PORT=3001
+EnvironmentFile=/home/ridgetop/keymaker/.env
+ExecStart=/usr/bin/node --import tsx src/api/server.ts
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
