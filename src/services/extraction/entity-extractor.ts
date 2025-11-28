@@ -15,6 +15,7 @@ import { Pool } from 'pg';
 import { ExtractedPerson, ExtractedProject, ExtractedCommitment, ExtractedBelief } from './types.js';
 import { generate, embed } from './provider-factory.js';
 import { syncCommitmentToCalendar } from '../calendar.js';
+import { verifyAndCorrectEventDate } from './date-verification.js';
 
 /**
  * Get formatted current date/time string for extraction prompts
@@ -259,10 +260,26 @@ JSON array only, no explanation:`;
     }>;
 
     return parsed.map(c => {
-      // Validate event_time - reject dates that are unreasonable
-      const validatedEventTime = validateExtractedDate(c.event_time);
-      if (c.event_time && !validatedEventTime) {
+      // Step 1: Basic validation - reject dates that are unreasonable
+      let finalEventTime = validateExtractedDate(c.event_time);
+      if (c.event_time && !finalEventTime) {
         console.log(`[Extraction] Rejected invalid event_time: ${c.event_time} for "${c.description}"`);
+      }
+
+      // Step 2: Verify and correct date against user's original input
+      // This catches LLM errors like "Saturday the 29th" → wrong day
+      if (finalEventTime) {
+        const verification = verifyAndCorrectEventDate(
+          content,                    // Original user input
+          new Date(finalEventTime),   // LLM's extracted date
+          new Date()                  // Current anchor date
+        );
+
+        if (!verification.isValid) {
+          console.log(`[Extraction] Date corrected for "${c.description}":`);
+          verification.corrections.forEach(corr => console.log(`  - ${corr}`));
+          finalEventTime = verification.correctedDate.toISOString();
+        }
       }
 
       return {
@@ -271,7 +288,7 @@ JSON array only, no explanation:`;
         description: c.description,
         committed_to: c.committed_to,
         due_date: c.due_date,
-        event_time: validatedEventTime || undefined,
+        event_time: finalEventTime || undefined,
         duration_minutes: c.duration_minutes,
         location: c.location,
         add_to_calendar: c.add_to_calendar,
