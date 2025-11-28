@@ -33,6 +33,11 @@ import {
   processMessage,
   pruneOldSessions
 } from '../services/chat/index.js';
+import {
+  getCalendarStatus,
+  syncCommitmentToCalendar,
+  unsyncCommitmentFromCalendar
+} from '../services/calendar.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -1219,6 +1224,115 @@ app.post('/api/transcribe', async (req, res) => {
   } catch (err) {
     console.error('Transcription error:', err);
     res.status(500).json({ error: err instanceof Error ? err.message : 'Transcription failed' });
+  }
+});
+
+// ===================
+// Calendar Endpoints (Phase 3)
+// ===================
+
+/**
+ * GET /api/calendar/status
+ * Check CalDAV connection status
+ */
+app.get('/api/calendar/status', async (req, res) => {
+  try {
+    const status = await getCalendarStatus();
+    res.json(status);
+  } catch (err) {
+    console.error('Calendar status error:', err);
+    res.status(500).json({ error: 'Failed to get calendar status' });
+  }
+});
+
+/**
+ * POST /api/calendar/sync/:commitmentId
+ * Manually trigger CalDAV sync for a commitment
+ */
+app.post('/api/calendar/sync/:commitmentId', async (req, res) => {
+  try {
+    const { commitmentId } = req.params;
+
+    // Get commitment from database
+    const result = await pool.query(
+      `SELECT id, description, event_time, duration_minutes, location, committed_to, synced_to_calendar, caldav_uid
+       FROM entities_commitments WHERE id = $1`,
+      [commitmentId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Commitment not found' });
+    }
+
+    const commitment = result.rows[0];
+
+    if (!commitment.event_time) {
+      return res.status(400).json({ error: 'Commitment has no event_time - cannot sync to calendar' });
+    }
+
+    // Sync to CalDAV
+    const uid = await syncCommitmentToCalendar({
+      id: commitment.id,
+      description: commitment.description,
+      event_time: commitment.event_time,
+      duration_minutes: commitment.duration_minutes,
+      location: commitment.location,
+      committed_to: commitment.committed_to
+    });
+
+    // Update database
+    await pool.query(
+      `UPDATE entities_commitments SET synced_to_calendar = TRUE, caldav_uid = $1 WHERE id = $2`,
+      [uid, commitmentId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Commitment synced to calendar',
+      caldav_uid: uid
+    });
+  } catch (err) {
+    console.error('Calendar sync error:', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Sync failed' });
+  }
+});
+
+/**
+ * DELETE /api/calendar/unsync/:commitmentId
+ * Remove a commitment from CalDAV (keeps in keymaker)
+ */
+app.delete('/api/calendar/unsync/:commitmentId', async (req, res) => {
+  try {
+    const { commitmentId } = req.params;
+
+    // Get commitment from database
+    const result = await pool.query(
+      `SELECT id, caldav_uid FROM entities_commitments WHERE id = $1`,
+      [commitmentId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Commitment not found' });
+    }
+
+    const commitment = result.rows[0];
+
+    // Remove from CalDAV
+    await unsyncCommitmentFromCalendar(commitmentId);
+
+    // Update database
+    await pool.query(
+      `UPDATE entities_commitments SET synced_to_calendar = FALSE, caldav_uid = NULL WHERE id = $1`,
+      [commitmentId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Commitment removed from calendar'
+    });
+  } catch (err) {
+    console.error('Calendar unsync error:', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Unsync failed' });
   }
 });
 

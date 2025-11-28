@@ -14,6 +14,7 @@
 import { Pool } from 'pg';
 import { ExtractedPerson, ExtractedProject, ExtractedCommitment, ExtractedBelief } from './types.js';
 import { generate, embed } from './provider-factory.js';
+import { syncCommitmentToCalendar } from '../calendar.js';
 
 interface ContradictionCheck {
   contradicts: boolean;
@@ -376,6 +377,7 @@ async function storeProject(
 /**
  * Store a commitment
  * Instance #51: Enhanced to store calendar fields (event_time, duration, location, sync flag)
+ * Instance #52: Added CalDAV sync when add_to_calendar is true
  */
 async function storeCommitment(
   pool: Pool,
@@ -415,7 +417,33 @@ async function storeCommitment(
     ]
   );
 
-  return result.rows[0].id;
+  const commitmentId = result.rows[0].id;
+
+  // Sync to CalDAV if add_to_calendar is true and event_time is set
+  if (commitment.add_to_calendar && commitment.event_time) {
+    try {
+      await syncCommitmentToCalendar({
+        id: commitmentId,
+        description: commitment.description,
+        event_time: new Date(commitment.event_time),
+        duration_minutes: commitment.duration_minutes,
+        location: commitment.location,
+        committed_to: commitment.committed_to
+      });
+
+      // Update caldav_uid in database
+      const uid = `keymaker-commitment-${commitmentId}@keymaker`;
+      await pool.query(
+        `UPDATE entities_commitments SET caldav_uid = $1 WHERE id = $2`,
+        [uid, commitmentId]
+      );
+    } catch (error) {
+      // Log but don't fail - calendar sync is non-critical
+      console.error(`[Calendar] Failed to sync commitment ${commitmentId}:`, error);
+    }
+  }
+
+  return commitmentId;
 }
 
 /**

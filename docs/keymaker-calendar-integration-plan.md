@@ -418,19 +418,22 @@ if (commitment.synced_to_calendar && commitment.caldav_uid) {
 
 ## 8. Implementation Phases
 
-### Phase 1: Schema + Display (Keymaker-only)
-- [ ] Add database columns via migration
-- [ ] Build `/api/schedule` endpoint
-- [ ] Update extraction to parse datetimes
-- [ ] Test formatted schedule output
-- **No CalDAV yet** - keymaker standalone works
+### Phase 1: Schema + Display (Keymaker-only) ✅ COMPLETE
+- [x] Add database columns via migration
+- [x] Build `/api/schedule` endpoint
+- [x] Update extraction to parse datetimes
+- [x] Test formatted schedule output
+- **Completed**: Instance #51 (2025-11-28)
 
-### Phase 2: Radicale Setup
-- [ ] Install and configure Radicale
-- [ ] Set up systemd service
-- [ ] Configure authentication
-- [ ] Test with iOS/Android calendar app
-- [ ] Set up reverse proxy (optional, for remote access)
+### Phase 2: Radicale Setup ✅ COMPLETE
+- [x] Install and configure Radicale (pipx)
+- [x] Set up user systemd service
+- [x] Configure htpasswd authentication (bcrypt)
+- [x] Create keymaker calendar collection
+- [ ] Test with iOS/Android calendar app (pending VPS reverse proxy)
+- [ ] Set up reverse proxy (pending - needed for remote access)
+- **Completed (local)**: Instance #52 (2025-11-28)
+- **Documentation**: `docs/radicale-setup.md`
 
 ### Phase 3: CalDAV Integration
 - [ ] Implement `services/calendar.ts`
