@@ -16,6 +16,56 @@ import { ExtractedPerson, ExtractedProject, ExtractedCommitment, ExtractedBelief
 import { generate, embed } from './provider-factory.js';
 import { syncCommitmentToCalendar } from '../calendar.js';
 
+/**
+ * Get formatted current date/time string for extraction prompts
+ * This gives the LLM temporal context for interpreting relative dates
+ */
+function getCurrentDateContext(): string {
+  const now = new Date();
+  const options: Intl.DateTimeFormatOptions = {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+    timeZone: 'America/New_York'
+  };
+  return now.toLocaleString('en-US', options);
+}
+
+/**
+ * Validate extracted date is reasonable (not in past, not too far in future)
+ * Returns null if date is invalid/unreasonable, otherwise returns the date
+ */
+function validateExtractedDate(dateStr: string | undefined): string | null {
+  if (!dateStr) return null;
+
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return null;
+
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const oneYearFromNow = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+
+    // Allow events from yesterday (in case of timezone differences) to 1 year out
+    if (date < oneDayAgo) {
+      console.warn(`[Calendar] Date validation: ${dateStr} is in the past, rejecting`);
+      return null;
+    }
+    if (date > oneYearFromNow) {
+      console.warn(`[Calendar] Date validation: ${dateStr} is more than 1 year out, rejecting`);
+      return null;
+    }
+
+    return dateStr;
+  } catch {
+    return null;
+  }
+}
+
 interface ContradictionCheck {
   contradicts: boolean;
   type?: string;
@@ -148,9 +198,15 @@ JSON array only, no explanation:`;
 /**
  * Extract commitments from an observation
  * Instance #51: Enhanced to extract calendar-specific fields (event_time, duration, location, calendar intent)
+ * Instance #53: Added current date/time context for accurate relative date parsing
  */
 async function extractCommitments(content: string): Promise<ExtractedCommitment[]> {
+  const currentDateTime = getCurrentDateContext();
+
   const prompt = `Extract all commitments, promises, scheduled events, or tasks Brian has made in this observation. Return valid JSON only.
+
+IMPORTANT - Current date/time: ${currentDateTime}
+Use this to correctly interpret relative dates like "tomorrow", "this Saturday", "next week", etc.
 
 Observation: "${content}"
 
@@ -158,17 +214,26 @@ Return a JSON array of commitments. For each commitment include:
 - description: what was promised/committed/scheduled
 - committed_to: who the commitment was made to (if mentioned)
 - due_date: deadline date if mentioned, in YYYY-MM-DD format (for tasks without specific time)
-- event_time: specific datetime if this is a scheduled event, in ISO 8601 format (e.g., "2025-12-05T15:00:00")
+- event_time: specific datetime if this is a scheduled event, in ISO 8601 format with timezone offset (e.g., "2025-11-29T15:00:00-05:00")
 - duration_minutes: how long the event lasts (e.g., 30, 60, 90). Default to 60 if a meeting but duration not specified.
 - location: where it takes place (e.g., "Office", "Zoom", "123 Main St", null if not mentioned)
 - add_to_calendar: true if Brian explicitly said "add to calendar", "put on my calendar", "schedule this", etc.
 - status: pending, in_progress, completed, or unknown
 - confidence: 0.0-1.0 how confident this is a real commitment
 
+CRITICAL: Date parsing rules (assume Eastern Time):
+- "tomorrow" = the day after ${currentDateTime.split(',')[0]}
+- "this Saturday" = the upcoming Saturday from today
+- "next Saturday" = the Saturday AFTER this upcoming Saturday
+- "the 29th" = the 29th of the CURRENT month (November 2025), unless context clearly indicates otherwise
+- "Saturday the 29th" = November 29, 2025 (this Saturday)
+- "Monday at 3pm" = the upcoming Monday at 3:00 PM Eastern
+
 Time parsing examples:
-- "tomorrow at 3pm" -> event_time relative to current date
-- "next Tuesday 10am" -> event_time for next Tuesday
-- "December 5th at 3" -> event_time: "2025-12-05T15:00:00"
+- "tomorrow at 3pm" -> if today is Friday Nov 28, event_time: "2025-11-29T15:00:00-05:00"
+- "this Saturday" -> if today is Friday Nov 28, event_time: "2025-11-29T..." (Saturday Nov 29)
+- "next Tuesday 10am" -> "2025-12-02T10:00:00-05:00" (Tuesday Dec 2)
+- "the 29th at 2pm" -> "2025-11-29T14:00:00-05:00" (November 29)
 - "for 30 minutes" -> duration_minutes: 30
 - "1 hour meeting" -> duration_minutes: 60
 
@@ -193,20 +258,28 @@ JSON array only, no explanation:`;
       confidence?: number;
     }>;
 
-    return parsed.map(c => ({
-      type: 'commitment' as const,
-      name: c.description.slice(0, 100), // Short name for display
-      description: c.description,
-      committed_to: c.committed_to,
-      due_date: c.due_date,
-      event_time: c.event_time,
-      duration_minutes: c.duration_minutes,
-      location: c.location,
-      add_to_calendar: c.add_to_calendar,
-      status: c.status as ExtractedCommitment['status'],
-      metadata: {},
-      confidence: c.confidence ?? 0.7
-    }));
+    return parsed.map(c => {
+      // Validate event_time - reject dates that are unreasonable
+      const validatedEventTime = validateExtractedDate(c.event_time);
+      if (c.event_time && !validatedEventTime) {
+        console.log(`[Extraction] Rejected invalid event_time: ${c.event_time} for "${c.description}"`);
+      }
+
+      return {
+        type: 'commitment' as const,
+        name: c.description.slice(0, 100), // Short name for display
+        description: c.description,
+        committed_to: c.committed_to,
+        due_date: c.due_date,
+        event_time: validatedEventTime || undefined,
+        duration_minutes: c.duration_minutes,
+        location: c.location,
+        add_to_calendar: c.add_to_calendar,
+        status: c.status as ExtractedCommitment['status'],
+        metadata: {},
+        confidence: c.confidence ?? 0.7
+      };
+    });
   } catch {
     return [];
   }
