@@ -435,12 +435,15 @@ if (commitment.synced_to_calendar && commitment.caldav_uid) {
 - **Completed (local)**: Instance #52 (2025-11-28)
 - **Documentation**: `docs/radicale-setup.md`
 
-### Phase 3: CalDAV Integration
-- [ ] Implement `services/calendar.ts`
-- [ ] Add calendar intent detection to extraction
-- [ ] Implement create/update/delete sync
-- [ ] Add `synced_to_calendar` flag handling
-- [ ] Add `/api/calendar/*` endpoints
+### Phase 3: CalDAV Integration ✅ COMPLETE
+- [x] Implement `services/calendar.ts`
+- [x] Add calendar intent detection to extraction (Phase 1)
+- [x] Implement create/update/delete sync
+- [x] Add `synced_to_calendar` flag handling
+- [x] Add `/api/calendar/*` endpoints
+- [x] Hook entity extraction into /api/observe for auto-sync
+- **Completed**: Instance #52 (2025-11-28)
+- **Tested**: Events sync to Radicale successfully
 
 ### Phase 4: Surface Integration
 - [ ] Integrate scheduled events into `/api/surface`
