@@ -180,18 +180,32 @@ location /caldav/ {
 }
 ```
 
-### Calendar App Settings
+### Calendar App Settings ✅ WORKING
 
-**iOS Calendar**:
-- Account Type: CalDAV
-- Server: `https://ridgetopai.com/caldav`
-- Username: `ridgetop`
-- Password: (your password)
-- Calendar Path: `/ridgetop/keymaker/`
+**iOS Calendar** (Settings → Calendar → Accounts → Add Account → Other → CalDAV):
+- **Server**: `https://keymaker.ridgetopai.net/caldav/ridgetop/`
+- **Username**: `ridgetop`
+- **Password**: `Band5653`
+- **Description**: Keymaker
 
-**Android (DAVx⁵)**:
-- Base URL: `https://ridgetopai.com/caldav/ridgetop/`
-- Login with username/password
+**Android (DAVx⁵ app from F-Droid/Play Store)**:
+1. Install DAVx⁵
+2. Add account → Login with URL and username
+3. **Base URL**: `https://keymaker.ridgetopai.net/caldav/ridgetop/`
+4. **Username**: `ridgetop`
+5. **Password**: `Band5653`
+6. Select "Keymaker" calendar to sync
+
+**macOS Calendar** (Calendar → Add Account → Other CalDAV Account):
+- **Account Type**: CalDAV
+- **Username**: `ridgetop`
+- **Password**: `Band5653`
+- **Server Address**: `https://keymaker.ridgetopai.net/caldav/ridgetop/`
+
+**Thunderbird** (Calendar → New Calendar → On the Network):
+- **Format**: CalDAV
+- **Location**: `https://keymaker.ridgetopai.net/caldav/ridgetop/keymaker/`
+- **Username**: `ridgetop`
 
 ---
 
