@@ -52,9 +52,16 @@ export class GroqClient implements LLMProvider {
    * Generate completion using Groq's chat API
    */
   async generate(prompt: string, options?: GenerateOptions): Promise<string> {
-    const messages: GroqChatMessage[] = [
-      { role: 'user', content: prompt }
-    ];
+    const messages: GroqChatMessage[] = [];
+
+    // Use proper system/user separation when systemPrompt provided
+    if (options?.systemPrompt) {
+      messages.push({ role: 'system', content: options.systemPrompt });
+      messages.push({ role: 'user', content: prompt });
+    } else {
+      // Legacy: treat entire prompt as user message
+      messages.push({ role: 'user', content: prompt });
+    }
 
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',

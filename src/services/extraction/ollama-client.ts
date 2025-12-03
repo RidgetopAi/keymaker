@@ -24,8 +24,14 @@ export class OllamaClient implements LLMProvider, EmbeddingProvider {
 
   /**
    * Generate completion from Ollama
+   * Uses /api/chat when systemPrompt provided, /api/generate otherwise
    */
   async generate(prompt: string, options?: GenerateOptions): Promise<string> {
+    // Use chat API when system prompt provided for proper message separation
+    if (options?.systemPrompt) {
+      return this.generateChat(prompt, options);
+    }
+
     const response = await fetch(`${this.baseUrl}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -49,6 +55,46 @@ export class OllamaClient implements LLMProvider, EmbeddingProvider {
 
     const data = await response.json() as { response: string };
     return data.response;
+  }
+
+  /**
+   * Generate using Ollama's chat API with proper message roles
+   */
+  private async generateChat(prompt: string, options: GenerateOptions): Promise<string> {
+    interface ChatMessage {
+      role: 'system' | 'user' | 'assistant';
+      content: string;
+    }
+
+    const messages: ChatMessage[] = [];
+    if (options.systemPrompt) {
+      messages.push({ role: 'system', content: options.systemPrompt });
+    }
+    messages.push({ role: 'user', content: prompt });
+
+    const response = await fetch(`${this.baseUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: this.model,
+        messages,
+        stream: false,
+        keep_alive: this.config.keep_alive,
+        options: {
+          temperature: options?.temperature ?? 0.1,
+          num_predict: options?.max_tokens ?? 2048,
+          num_thread: this.config.num_thread,
+          num_ctx: this.config.num_ctx,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama chat failed: ${response.statusText}`);
+    }
+
+    const data = await response.json() as { message: { content: string } };
+    return data.message.content;
   }
 
   /**

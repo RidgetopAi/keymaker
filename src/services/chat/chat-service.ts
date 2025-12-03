@@ -16,6 +16,22 @@ import { generate } from '../extraction/provider-factory.js';
 import { getAllSummaries } from '../digest.js';
 import { embed } from '../../cli.js';
 
+/**
+ * System prompt defining the assistant's personality
+ * Friendly, casual, warm - like a helpful buddy with perfect memory
+ */
+const BUDDY_SYSTEM_PROMPT = `You are Brian's memory buddy - a helpful friend who happens to have perfect recall of everything Brian tells you.
+
+Your personality:
+- Warm and casual, like talking to a friend
+- Brief but genuine - not robotic or corporate
+- You care about Brian's life, not just his data
+- Use natural language, occasional light humor when appropriate
+- Be real with him - if you don't know something, just say so
+
+Keep responses concise. One or two sentences for confirmations. A few sentences for answers.
+Never sound like a generic AI assistant. You're his buddy who remembers everything.`;
+
 interface SearchResult {
   id: string;
   content: string;
@@ -235,9 +251,8 @@ async function handleQuery(
     ? recentMessages.map(m => `${m.role}: ${m.content}`).join('\n')
     : '';
 
-  const prompt = `You are Brian's personal memory assistant. Answer his question based on what you know about him.
-
-BRIAN'S CURRENT STATE:
+  // Build context for user message
+  const userPrompt = `BRIAN'S CURRENT STATE:
 Commitments: ${summaries.commitments || 'None recorded'}
 People: ${summaries.people || 'None recorded'}
 Projects: ${summaries.projects || 'None recorded'}
@@ -249,12 +264,12 @@ ${relevantObs || 'No relevant observations found'}
 RECENT CONVERSATION:
 ${conversationContext || 'Start of conversation'}
 
-BRIAN'S QUESTION: ${userMessage}
+BRIAN'S QUESTION: ${userMessage}`;
 
-Respond naturally and conversationally. Be concise but helpful. If you're listing tasks or items, use a clean format.
-If you don't have enough information, say so honestly.`;
-
-  return generate(prompt, { temperature: 0.3 });
+  return generate(userPrompt, {
+    temperature: 0.5,  // Slightly higher for more natural variation
+    systemPrompt: BUDDY_SYSTEM_PROMPT
+  });
 }
 
 /**
@@ -286,8 +301,15 @@ async function handleObservation(
     console.log('[Chat] Entity extraction skipped:', e);
   }
 
+  // Generate natural confirmation instead of hardcoded response
+  // OLD: response: `Got it, I'll remember that.`,
+  const response = await generate(
+    `Brian just told you: "${observationText}"\n\nYou've stored this in your memory. Acknowledge briefly and naturally in one sentence.`,
+    { temperature: 0.6, systemPrompt: BUDDY_SYSTEM_PROMPT }
+  );
+
   return {
-    response: `Got it, I'll remember that.`,
+    response,
     action: { type: 'observation', observationId: obsId }
   };
 }
@@ -332,8 +354,15 @@ async function handleUpdate(
         [updateStatus, commitment.id]
       );
 
+      // Generate natural confirmation for completed item
+      // OLD: response: `Done! I've marked "${commitment.description}" as ${updateStatus}.`,
+      const response = await generate(
+        `Brian just completed: "${commitment.description}"\n\nYou've marked it as ${updateStatus}. Acknowledge this accomplishment briefly and naturally in one sentence.`,
+        { temperature: 0.6, systemPrompt: BUDDY_SYSTEM_PROMPT }
+      );
+
       return {
-        response: `Done! I've marked "${commitment.description}" as ${updateStatus}.`,
+        response,
         action: { type: 'update', commitmentId: commitment.id, status: updateStatus }
       };
     }
@@ -341,9 +370,15 @@ async function handleUpdate(
     console.log('[Chat] Commitment update lookup failed:', e);
   }
 
-  // Fallback: just confirm the observation was recorded
+  // Fallback: generate natural confirmation for general update
+  // OLD: response: `Noted! I've recorded that update.`,
+  const response = await generate(
+    `Brian said: "${userMessage}"\n\nThis sounds like an update or completion. You've recorded it. Acknowledge briefly and naturally in one sentence.`,
+    { temperature: 0.6, systemPrompt: BUDDY_SYSTEM_PROMPT }
+  );
+
   return {
-    response: `Noted! I've recorded that update.`,
+    response,
     action: { type: 'update', observationId: obsId, status: updateStatus }
   };
 }

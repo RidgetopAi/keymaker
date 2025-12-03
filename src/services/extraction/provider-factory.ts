@@ -5,7 +5,7 @@
  * Strategy: Groq for generation (fast), Ollama for embeddings (free).
  */
 
-import { LLMProvider, EmbeddingProvider, getLLMConfig, LLMConfig } from './llm-provider.js';
+import { LLMProvider, EmbeddingProvider, getLLMConfig, LLMConfig, GenerateOptions } from './llm-provider.js';
 import { OllamaClient } from './ollama-client.js';
 import { GroqClient } from './groq-client.js';
 
@@ -75,7 +75,7 @@ export function resetProviders(): void {
 /**
  * Convenience function to generate text with the configured provider
  */
-export async function generate(prompt: string, options?: { temperature?: number; max_tokens?: number }): Promise<string> {
+export async function generate(prompt: string, options?: GenerateOptions): Promise<string> {
   const provider = getLLMProvider();
   return provider.generate(prompt, options);
 }

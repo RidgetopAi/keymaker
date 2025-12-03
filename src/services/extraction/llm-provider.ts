@@ -8,6 +8,7 @@
 export interface GenerateOptions {
   temperature?: number;
   max_tokens?: number;
+  systemPrompt?: string;  // Separate system message for chat-style APIs
 }
 
 export interface LLMProvider {
