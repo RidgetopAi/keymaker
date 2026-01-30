@@ -247,6 +247,29 @@ export async function unsyncCommitmentFromCalendar(commitmentId: number | string
 }
 
 /**
+ * Format a date range for display ("Jan 10 - Jan 15" style)
+ */
+export function formatDateRange(start: Date, end: Date): string {
+  const startMonth = start.toLocaleDateString('en-US', { month: 'short' });
+  const endMonth = end.toLocaleDateString('en-US', { month: 'short' });
+  const startDay = start.getDate();
+  const endDay = end.getDate();
+
+  // Same day
+  if (start.toDateString() === end.toDateString()) {
+    return `${startMonth} ${startDay}`;
+  }
+
+  // Same month
+  if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+    return `${startMonth} ${startDay} - ${endDay}`;
+  }
+
+  // Different months
+  return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+}
+
+/**
  * Get CalDAV connection status
  */
 export async function getCalendarStatus(): Promise<{
